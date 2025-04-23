@@ -62,3 +62,12 @@ if __name__ == '__main__':
         port=WEBAPP_PORT,
     )
 # redeploy test
+from aiogram import types
+
+@dp.message_handler(commands=["start"])
+async def start_handler(message: types.Message):
+    await message.answer("Привіт! Я MaxDemyan Chatbot. Слухаю тебе уважно.")
+
+@dp.message_handler()
+async def echo_handler(message: types.Message):
+    await message.answer("Ти написав: " + message.text)
