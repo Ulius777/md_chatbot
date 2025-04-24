@@ -1,0 +1,62 @@
+import logging
+import os
+import openai
+from aiohttp import web
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils.executor import start_webhook
+
+API_TOKEN = os.getenv("API_TOKEN")
+GPT_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# GPT стиль MaxDemyan
+def build_prompt(user_input):
+    return (
+        f"Твоя відповідь має бути в стилі MaxDemyan: глибока, напівіронічна, з прикладами і метафорами. "
+        f"Пиши як людині, що шукає сенс. Ось питання: «{user_input}»\n\nВідповідь:"
+    )
+
+# Основне
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+openai.api_key = GPT_API_KEY
+
+@dp.message_handler()
+async def handle_message(message: types.Message):
+    prompt = build_prompt(message.text)
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
+        )
+        reply = response['choices'][0]['message']['content']
+    except Exception as e:
+        reply = "Щось пішло не так… навіть всесвіт помиляється. Спробуй ще раз."
+
+    await message.answer(reply)
+
+# Webhook налаштування
+WEBHOOK_HOST = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}"
+WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
+WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+
+WEBAPP_HOST = "0.0.0.0"
+WEBAPP_PORT = int(os.getenv("PORT", 8000))
+
+async def on_startup(app):
+    await bot.set_webhook(WEBHOOK_URL)
+
+async def on_shutdown(app):
+    await bot.delete_webhook()
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    start_webhook(
+        dispatcher=dp,
+        webhook_path=WEBHOOK_PATH,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown,
+        skip_updates=True,
+        host=WEBAPP_HOST,
+        port=WEBAPP_PORT,
+    )
