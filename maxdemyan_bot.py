@@ -21,3 +21,5 @@ async def echo_handler(message: types.Message):
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
+API_TOKEN = os.getenv("BOT_API_TOKEN")
+GPT_API_KEY = os.getenv("OPENAI_API_KEY")
